@@ -1,8 +1,8 @@
 <template>
   <div class="box">
     <el-dialog :title="info.title" :visible.sync="info.isshow" @closed="closed" @opened="opened">
-      <el-form :model="user">
-        <el-form-item label="一级分类" label-width="120px">
+      <el-form :model="user" :rules="rules">
+        <el-form-item label="一级分类" label-width="120px" prop="first_cateid">
           <el-select v-model="user.first_cateid" placeholder="请选择" @change="changeFirst">
             <el-option
               v-for="item in cateList"
@@ -13,7 +13,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="二级分类" label-width="120px">
+        <el-form-item label="二级分类" label-width="120px" prop="second_cateid">
           <el-select v-model="user.second_cateid" placeholder="请选择">
             <el-option
               v-for="item in secondCateList"
@@ -24,15 +24,15 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="商品名称" label-width="120px">
+        <el-form-item label="商品名称" label-width="120px" prop="goodsname">
           <el-input v-model="user.goodsname" autocomplete="off"></el-input>
         </el-form-item>
 
-        <el-form-item label="价格" label-width="120px">
+        <el-form-item label="价格" label-width="120px" prop="price">
           <el-input v-model="user.price" autocomplete="off"></el-input>
         </el-form-item>
 
-        <el-form-item label="市场价格" label-width="120px">
+        <el-form-item label="市场价格" label-width="120px" prop="market_price">
           <el-input v-model="user.market_price" autocomplete="off"></el-input>
         </el-form-item>
 
@@ -46,7 +46,7 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="商品规格" label-width="120px">
+        <el-form-item label="商品规格" label-width="120px" prop="specsid">
           <el-select v-model="user.specsid" placeholder="请选择" @change="changeSpecs">
             <el-option
               v-for="item in specsList"
@@ -110,7 +110,7 @@ import {
   reqCateList,
 } from "../../../../utils/http";
 import formVue from "../../manage/components/form.vue";
-import { successAlert } from "../../../../utils/alert";
+import { errorAlert, successAlert } from "../../../../utils/alert";
 import path from "path";
 import E from "wangeditor";
 export default {
@@ -126,6 +126,58 @@ export default {
       total: "goods/total",
       size: "goods/size",
     }),
+  },
+  data() {
+    return {
+      user: {
+        first_cateid: "",
+        second_cateid: "",
+        goodsname: "",
+        price: "",
+        market_price: "",
+        img: null,
+        description: "",
+        specsid: "",
+        specsattr: [], //此时是数组，后端要的是 "[]"
+        isnew: 1,
+        ishot: 2,
+        status: 1,
+      },
+      // 图片地址
+      imgUrl: "",
+      // 二级分类的列表
+      secondCateList: [],
+      // 二级规格的列表
+      attrsList: [],
+
+      // 验证
+      rules: {
+        first_cateid: [
+          { required: true, message: "请输入一级分类", trigger: "change" },
+        ],
+        second_cateid: [
+          { required: true, message: "请输入二级分类", trigger: "change" },
+        ],
+        goodsname: [
+          { required: true, message: "请输入商品名称", trigger: "blur" },
+        ],
+        price: [{ required: true, message: "请输入商品价格", trigger: "blur" }],
+        market_price: [
+          { required: true, message: "请输入商品市场价格", trigger: "blur" },
+        ],
+        specsid: [
+          { required: true, message: "请输入商品规格", trigger: "change" },
+        ],
+        specsattr: [
+          {
+            type: "array",
+            required: true,
+            message: "请至少选择一个规格属性",
+            trigger: "change",
+          },
+        ],
+      },
+    };
   },
   methods: {
     ...mapActions({
@@ -154,7 +206,7 @@ export default {
         img: null,
         description: "",
         specsid: "",
-        specsattr:[],
+        specsattr: [],
         isnew: 1,
         ishot: 2,
         status: 1,
@@ -181,7 +233,7 @@ export default {
     // 根据一级 来计算出二级规格属性的list
     changeSpecs() {
       //先将specsattr 置空
-      this.user.specsattr =[];
+      this.user.specsattr = [];
       this.getAttrs();
     },
     getAttrs() {
@@ -221,29 +273,77 @@ export default {
       this.user.img = file;
       // console.log(this.user);
     },
+
+    // 添加前验证
+    check() {
+      return new Promise((resolve, reject) => {
+        // 添加之前验证
+        if (this.user.first_cateid === "") {
+          errorAlert("请选择一级分类");
+          return;
+        }
+        if (this.user.second_cateid === "") {
+          errorAlert("请选择二级分类");
+          return;
+        }
+        if (this.user.goodsname === "") {
+          errorAlert("请输入商品名称");
+          return;
+        }
+        if (this.user.price === "") {
+          errorAlert("请输入商品价格");
+          return;
+        }
+        if (this.user.market_price === "") {
+          errorAlert("请输入商品市场价格");
+          return;
+        }
+        if (this.user.img === null) {
+          errorAlert("请选择图片");
+          return;
+        }
+        if (this.user.specsid === "") {
+          errorAlert("请选择商品规格");
+          return;
+        }
+        if (this.user.specsattr.length === 0) {
+          errorAlert("请选择商品属性");
+          return;
+        }
+        if (this.editor.txt.html() === "") {
+          errorAlert("请输入商品描述");
+          return;
+        }
+        resolve();
+      });
+    },
+
     // 添加
     add() {
-      // 富文本编辑器的内容取出 给user.description
-      // 取值
-      this.user.description = this.editor.txt.html();
+      // 添加前验证
+      this.check().then(() => {
+        // 富文本编辑器的内容取出 给user.description
+        // 取值
+        this.user.description = this.editor.txt.html();
 
-      let d = { ...this.user };
-      d.specsattr = JSON.stringify(d.specsattr);
+        let d = { ...this.user };
+        d.specsattr = JSON.stringify(d.specsattr);
 
         console.log(d);
-      reqgoodsAdd(d).then((res) => {
-        if (res.data.code == 200) {
-          // 谈成功
-          successAlert("添加成功");
-          // 弹框消失
-          this.cancel();
-          // 数据清空
-          this.empty();
-          // 刷新列表
-          this.reqgoodsList();
-          // 请求总数
-          this.reqCount();
-        }
+        reqgoodsAdd(d).then((res) => {
+          if (res.data.code == 200) {
+            // 谈成功
+            successAlert("添加成功");
+            // 弹框消失
+            this.cancel();
+            // 数据清空
+            this.empty();
+            // 刷新列表
+            this.reqgoodsList();
+            // 请求总数
+            this.reqCount();
+          }
+        });
       });
     },
 
@@ -266,30 +366,31 @@ export default {
           // 给编辑器赋值
           this.editor.txt.html(this.user.description);
         }
-
-
       });
     },
 
     // 修改
     update() {
-      this.user.description = this.editor.txt.html();
+      // 修改前验证
+      this.check().then(() => {
+        this.user.description = this.editor.txt.html();
 
-      let d = { ...this.user };
-      d.specsattr = JSON.stringify(d.specsattr);
+        let d = { ...this.user };
+        d.specsattr = JSON.stringify(d.specsattr);
 
-              console.log(this.user);
-      reqgoodsUpdate(d).then((res) => {
-        if (res.data.code == 200) {
-          // 谈成功
-          successAlert("修改成功");
-          // 弹框消失
-          this.cancel();
-          // 数据清空
-          this.empty();
-          // 刷新列表
-          this.reqgoodsList();
-        }
+        console.log(this.user);
+        reqgoodsUpdate(d).then((res) => {
+          if (res.data.code == 200) {
+            // 谈成功
+            successAlert("修改成功");
+            // 弹框消失
+            this.cancel();
+            // 数据清空
+            this.empty();
+            // 刷新列表
+            this.reqgoodsList();
+          }
+        });
       });
     },
 
@@ -307,30 +408,6 @@ export default {
       // 给编辑器赋值
       this.editor.txt.html(this.user.description);
     },
-  },
-  data() {
-    return {
-      user: {
-        first_cateid: "",
-        second_cateid: "",
-        goodsname: "",
-        price: "",
-        market_price: "",
-        img: null,
-        description: "",
-        specsid: "",
-        specsattr:[], //此时是数组，后端要的是 "[]"
-        isnew: 1,
-        ishot: 2,
-        status: 1,
-      },
-      // 图片地址
-      imgUrl: "",
-      // 二级分类的列表
-      secondCateList: [],
-      // 二级规格的列表
-      attrsList: [],
-    };
   },
   mounted() {
     // 请求一级列表
