@@ -84,9 +84,10 @@ export default {
     },
     // 添加
     add() {
-      //  取出attrArr 放入 attrs
-      this.user.attrs = JSON.stringify(this.attrArr.map((item) => item.value));
 
+      //  取出attrArr 放入 attrs
+      this.user.attrs = JSON.stringify(this.attrArr.map(item => item.value));
+    
       reqspecsAdd(this.user).then((res) => {
         if (res.data.code == 200) {
           // 谈成功
@@ -150,7 +151,9 @@ export default {
         attrs: "",
         status: 1,
       },
+      //属性值
       attrArr: [{ value: "" }],
+      
     };
   },
   mounted() {

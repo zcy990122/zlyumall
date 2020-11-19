@@ -1,6 +1,6 @@
 <template>
   <div class="box">
-    <el-dialog :title="info.title" :visible.sync="info.isshow" @closed="closed">
+    <el-dialog :title="info.title" :visible.sync="info.isshow" @closed="closed" @opened="opened">
       <el-form :model="user">
         <el-form-item label="一级分类" label-width="120px">
           <el-select v-model="user.first_cateid" placeholder="请选择" @change="changeFirst">
@@ -57,7 +57,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="规格属性" label-width="120px">
+        <el-form-item label="规格属性" label-width="120px" prop="specsattr">
           <el-select v-model="user.specsattr" placeholder="请选择" multiple>
             <el-option v-for="item in attrsList" :key="item" :value="item" :label="item"></el-option>
           </el-select>
@@ -75,11 +75,13 @@
         <el-form-item label="状态" label-width="120px">
           <el-switch v-model="user.status" :active-value="1" :inactive-value="2"></el-switch>
         </el-form-item>
-
-        <el-form-item label="状态" label-width="120px">
+        <!-- 富文本编辑器 -->
+        <!-- <el-form-item label="状态" label-width="120px">
           <textarea cols="30" rows="10" v-model="user.description"></textarea>
+        </el-form-item>-->
+        <el-form-item label="描述" label-width="120px">
+          <div id="edit" v-if="info.isshow"></div>
         </el-form-item>
-        {{ user }}
         <!-- 商品描述 -->
       </el-form>
 
@@ -89,6 +91,13 @@
         <el-button type="primary" @click="update" v-else>编 辑</el-button>
       </div>
     </el-dialog>
+    <!-- 分页 -->
+    <el-pagination
+      layout="prev, pager, next"
+      :total="total"
+      :page-size="size"
+      @current-change="changePage"
+    ></el-pagination>
   </div>
 </template>
 <script>
@@ -103,14 +112,19 @@ import {
 import formVue from "../../manage/components/form.vue";
 import { successAlert } from "../../../../utils/alert";
 import path from "path";
+import E from "wangeditor";
 export default {
   props: ["info"],
   computed: {
     ...mapGetters({
       // 一级
       cateList: "cate/list",
+
       // 规格
       specsList: "specs/list",
+      // 分页
+      total: "goods/total",
+      size: "goods/size",
     }),
   },
   methods: {
@@ -122,7 +136,8 @@ export default {
 
       //商品list和总数
       reqgoodsList: "goods/reqList",
-      reqgoodsCount: "goods/reqCount",
+      reqCount: "goods/reqCount",
+      changePage: "goods/changePage",
     }),
     // 取消
     cancel() {
@@ -139,7 +154,7 @@ export default {
         img: null,
         description: "",
         specsid: "",
-        specsattr: "",
+        specsattr:[],
         isnew: 1,
         ishot: 2,
         status: 1,
@@ -165,7 +180,8 @@ export default {
 
     // 根据一级 来计算出二级规格属性的list
     changeSpecs() {
-      this.user.specsattr = [];
+      //先将specsattr 置空
+      this.user.specsattr =[];
       this.getAttrs();
     },
     getAttrs() {
@@ -207,9 +223,14 @@ export default {
     },
     // 添加
     add() {
+      // 富文本编辑器的内容取出 给user.description
+      // 取值
+      this.user.description = this.editor.txt.html();
+
       let d = { ...this.user };
       d.specsattr = JSON.stringify(d.specsattr);
 
+        console.log(d);
       reqgoodsAdd(d).then((res) => {
         if (res.data.code == 200) {
           // 谈成功
@@ -220,6 +241,8 @@ export default {
           this.empty();
           // 刷新列表
           this.reqgoodsList();
+          // 请求总数
+          this.reqCount();
         }
       });
     },
@@ -228,27 +251,34 @@ export default {
     getOne(id) {
       reqgoodsInfo(id).then((res) => {
         this.user = res.data.list;
-
-        // 请求二级list
-        this.getsecoundList();
-
-        // 计算规格属性的list
-        this.getAttrs();
-        // 属性
-        this.user.specsattr = JSON.parse(this.user.specsattr);
-
-        // 图片     给imgUrl 赋值     $imgPre前置
-        this.imgUrl = this.$imgPre + this.user.img;
-
         // 补id
         this.user.id = id;
+        // 请求二级list
+        this.getsecoundList();
+        // 图片     给imgUrl 赋值     $imgPre前置
+        this.imgUrl = this.$imgPre + this.user.img;
+        // 属性
+        this.user.specsattr = JSON.parse(this.user.specsattr);
+        // 计算规格属性的list
+        this.getAttrs();
+
+        if (this.editor) {
+          // 给编辑器赋值
+          this.editor.txt.html(this.user.description);
+        }
+
+
       });
     },
 
     // 修改
     update() {
+      this.user.description = this.editor.txt.html();
+
       let d = { ...this.user };
       d.specsattr = JSON.stringify(d.specsattr);
+
+              console.log(this.user);
       reqgoodsUpdate(d).then((res) => {
         if (res.data.code == 200) {
           // 谈成功
@@ -265,9 +295,17 @@ export default {
 
     //.处理消失
     closed() {
-      if (this.info.title === "编辑分类") {
+      if (this.info.title === "编辑商品") {
         this.empty();
       }
+    },
+    // 弹框打开时  并且动画结束了 爱声明不声明
+    opened() {
+      this.editor = new E("#edit");
+      this.editor.create();
+
+      // 给编辑器赋值
+      this.editor.txt.html(this.user.description);
     },
   },
   data() {
@@ -281,7 +319,7 @@ export default {
         img: null,
         description: "",
         specsid: "",
-        specsattr: "",
+        specsattr:[], //此时是数组，后端要的是 "[]"
         isnew: 1,
         ishot: 2,
         status: 1,
@@ -300,6 +338,9 @@ export default {
 
     // 请求商品规格
     this.reqSpecsList(true);
+
+    // 请求总数
+    this.reqCount();
   },
 };
 </script>

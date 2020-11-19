@@ -25,9 +25,6 @@ const mutations = {
 const actions = {
     // 发起请求
     reqList(context) {
-        // 修改条件 是否需要分页
-
-
         // 发请求成功之后  修改list 
         reqgoodsList({page:context.state.page,size:context.state.size}).then(res => {
 

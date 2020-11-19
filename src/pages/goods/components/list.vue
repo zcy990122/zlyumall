@@ -64,6 +64,7 @@ export default {
   methods: {
     ...mapActions({
        reqList: "goods/reqList",
+       reqCount:'goods/reqCount'
     }),
 
     // 删除
@@ -74,6 +75,9 @@ export default {
 
           // 刷新页面
           this.reqList();
+
+          // 请求总数
+          this.reqCount();
         }
       });
     },

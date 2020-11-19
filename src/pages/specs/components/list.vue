@@ -9,10 +9,11 @@
     >
       <el-table-column prop="id" label="规格编号"></el-table-column>
       <el-table-column prop="specsname" label="规格名称"></el-table-column>
-      <el-table-column  label="规格属性" width="400px">
-        <template slot-scope="scope">
-          <el-tag v-for="item in scope.row.attrs" :key="item">{{item}}</el-tag>
-        </template>
+      <el-table-column  label="规格属性"
+      width='400px'> 
+      <template slot-scope="scope">
+      <el-tag v-for="item in scope.row.attrs" :key='item'>{{item}}</el-tag>  
+      </template>
       </el-table-column>
 
       <el-table-column label="状态">
@@ -46,7 +47,7 @@ export default {
   methods: {
     ...mapActions({
       reqList: "specs/reqList",
-      reqCount: "specs/reqCount",
+      reqCount:'specs/reqCount'
     }),
 
     // 删除
@@ -58,8 +59,7 @@ export default {
           // 刷新页面
           this.reqList();
 
-          // 请求总数
-          this.reqCount();
+          this.reqCount()
         }
       });
     },
@@ -72,6 +72,7 @@ export default {
   mounted() {
     // 一进来就发请求
     this.reqList();
+    this.reqCount()
   },
 };
 </script>

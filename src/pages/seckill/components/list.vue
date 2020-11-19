@@ -7,7 +7,7 @@
       border
       :tree-props="{children: 'children'}"
     >
-      <el-table-column prop="id" label="活动名称"></el-table-column>
+      <el-table-column prop="title" label="活动名称"></el-table-column>
 
       <el-table-column label="状态">
         <template slot-scope="scope">
@@ -28,32 +28,28 @@
 </template>
 <script>
 import { mapGetters, mapActions } from "vuex";
-import { reqspecsDel } from "../../../../utils/http";
+import { reqseckDel  } from "../../../../utils/http";
 import { successAlert } from "../../../../utils/alert";
 
 export default {
+  props:['list'],
   computed: {
     ...mapGetters({
-      list: "specs/list",
+
     }),
   },
   methods: {
     ...mapActions({
-      reqList: "specs/reqList",
-      reqCount: "specs/reqCount",
     }),
 
     // 删除
     del(id) {
-      reqspecsDel(id).then((res) => {
+      reqseckDel(id).then((res) => {
         if (res.data.code == 200) {
           successAlert("删除成功");
 
           // 刷新页面
-          this.reqList();
-
-          // 请求总数
-          this.reqCount();
+          this.$emit('init')
         }
       });
     },
@@ -64,8 +60,6 @@ export default {
     },
   },
   mounted() {
-    // 一进来就发请求
-    this.reqList();
   },
 };
 </script>
